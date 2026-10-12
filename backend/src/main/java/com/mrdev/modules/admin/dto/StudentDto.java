@@ -22,6 +22,9 @@ public class StudentDto {
     private String avatarUrl;
     private Role role;
     private Instant createdAt;
+    private LocalDate lastActiveDate;
+    private String telegramUsername;
+    private String githubUsername;
     private List<EnrollmentDto> enrollments;
     private String currentLessonTitle;
     private Instant estimatedFinishDate;

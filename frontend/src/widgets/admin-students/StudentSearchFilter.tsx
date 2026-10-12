@@ -1,12 +1,14 @@
 import React from 'react';
 import { Search, RotateCcw } from 'lucide-react';
-import { Course } from '@/shared/types';
+import { Course, UserRole } from '@/shared/types';
 
 interface StudentSearchFilterProps {
   searchQuery: string;
   onSearchChange: (value: string) => void;
   selectedCourseId: number | 'ALL';
   onCourseChange: (courseId: number | 'ALL') => void;
+  selectedRole?: UserRole | 'ALL';
+  onRoleFilterChange?: (role: UserRole | 'ALL') => void;
   courses: Course[];
   onReset: () => void;
   isLoading?: boolean;
@@ -17,11 +19,13 @@ export const StudentSearchFilter: React.FC<StudentSearchFilterProps> = ({
   onSearchChange,
   selectedCourseId,
   onCourseChange,
+  selectedRole = 'ALL',
+  onRoleFilterChange,
   courses,
   onReset,
   isLoading,
 }) => {
-  const isFiltered = searchQuery.trim() !== '' || selectedCourseId !== 'ALL';
+  const isFiltered = searchQuery.trim() !== '' || selectedCourseId !== 'ALL' || selectedRole !== 'ALL';
 
   return (
     <div className="bg-[#18181b] border border-white/5 rounded-xl p-4 mb-6 shadow-sm">
@@ -33,13 +37,33 @@ export const StudentSearchFilter: React.FC<StudentSearchFilterProps> = ({
             type="text"
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
-            placeholder="Поиск по имени или email..."
+            placeholder="Поиск по имени или email, Telegram, GitHub..."
             className="w-full pl-10 pr-4 py-2 bg-[#0a0a0c] border border-white/10 rounded-lg text-xs text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-zinc-500 transition-colors"
           />
         </div>
 
         {/* Filters Group */}
         <div className="flex flex-wrap items-center gap-3">
+          {/* Role Filter */}
+          {onRoleFilterChange && (
+            <div className="flex items-center gap-1.5 bg-[#0a0a0c] border border-white/10 rounded-lg px-2.5 py-1.5">
+              <select
+                value={selectedRole}
+                onChange={(e) => onRoleFilterChange(e.target.value as UserRole | 'ALL')}
+                className="bg-transparent text-xs text-zinc-300 focus:outline-none cursor-pointer"
+              >
+                <option value="ALL" className="bg-[#18181b] text-zinc-100">
+                  Все роли
+                </option>
+                <option value="STUDENT" className="bg-[#18181b] text-zinc-100">
+                  Студенты
+                </option>
+                <option value="ADMIN" className="bg-[#18181b] text-zinc-100">
+                  Администраторы
+                </option>
+              </select>
+            </div>
+          )}
 
           {/* Course Filter */}
           <div className="flex items-center gap-1.5 bg-[#0a0a0c] border border-white/10 rounded-lg px-2.5 py-1.5">

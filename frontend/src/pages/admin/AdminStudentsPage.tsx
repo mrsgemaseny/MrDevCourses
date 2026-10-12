@@ -11,6 +11,7 @@ import {
   Student,
   Course,
   PageResponse,
+  UserRole,
 } from '@/shared/types';
 import {
   StudentSearchFilter,
@@ -27,6 +28,7 @@ export const AdminStudentsPage: React.FC = () => {
   // Filter & Pagination state
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCourseId, setSelectedCourseId] = useState<number | 'ALL'>('ALL');
+  const [selectedRole, setSelectedRole] = useState<UserRole | 'ALL'>('ALL');
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(20);
 
@@ -53,6 +55,7 @@ export const AdminStudentsPage: React.FC = () => {
 
   const filterParams: StudentFilterParams = {
     q: searchQuery.trim() || undefined,
+    role: selectedRole === 'ALL' ? undefined : selectedRole,
     courseId: selectedCourseId === 'ALL' ? undefined : selectedCourseId,
     page,
     size: pageSize,
@@ -100,6 +103,20 @@ export const AdminStudentsPage: React.FC = () => {
     },
   });
 
+  const roleMutation = useMutation({
+    mutationFn: ({ userId, role }: { userId: number; role: UserRole }) =>
+      adminStudentApi.updateStudentRole(userId, role),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'students'] });
+      refetchStudents();
+      showFeedback('success', 'Роль пользователя успешно обновлена');
+    },
+    onError: (err: any) => {
+      const msg = err?.response?.data?.message || err?.message || 'Ошибка смены роли';
+      showFeedback('error', msg);
+    },
+  });
+
   const handleInspectProgress = (student: Student) => {
     setProgressUserId(student.id);
     setIsProgressDrawerOpen(true);
@@ -115,6 +132,7 @@ export const AdminStudentsPage: React.FC = () => {
   const handleResetFilters = () => {
     setSearchQuery('');
     setSelectedCourseId('ALL');
+    setSelectedRole('ALL');
     setPage(0);
   };
 
@@ -185,6 +203,11 @@ export const AdminStudentsPage: React.FC = () => {
           setSelectedCourseId(c);
           setPage(0);
         }}
+        selectedRole={selectedRole}
+        onRoleFilterChange={(r) => {
+          setSelectedRole(r);
+          setPage(0);
+        }}
         courses={courses}
         onReset={handleResetFilters}
         isLoading={isStudentsLoading || isStudentsFetching}
@@ -205,6 +228,9 @@ export const AdminStudentsPage: React.FC = () => {
         currentUserId={currentUser?.id}
         onInspectProgress={handleInspectProgress}
         onManageEnrollments={handleManageEnrollments}
+        onRoleChange={async (userId, newRole) => {
+          await roleMutation.mutateAsync({ userId, role: newRole });
+        }}
         isLoading={isStudentsLoading}
       />
 

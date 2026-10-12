@@ -143,6 +143,19 @@ class AdminStudentServiceTest {
     }
 
     @Test
+    @DisplayName("searchStudents without role filter should return both admins and students")
+    void searchStudents_WithoutRoleFilter_ShouldReturnAllUsers() {
+        when(userRepository.findAll()).thenReturn(List.of(adminUser, studentUser));
+        when(enrollmentRepository.findAllByUserIdsWithCourse(any())).thenReturn(List.of());
+        when(lessonProgressRepository.findAllByUserIdsWithLesson(any())).thenReturn(List.of());
+
+        PageResponse<StudentDto> page = adminStudentService.searchStudents(null, null, null, 0, 10);
+
+        assertThat(page.getTotalElements()).isEqualTo(2);
+        assertThat(page.getContent()).hasSize(2);
+    }
+
+    @Test
     @DisplayName("updateStudentRole should successfully promote student to ADMIN and log audit")
     void updateStudentRole_PromoteStudent_ShouldSucceed() {
         when(userRepository.findById(2L)).thenReturn(Optional.of(studentUser));

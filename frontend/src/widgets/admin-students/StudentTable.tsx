@@ -6,7 +6,8 @@ import {
   TrendingUp,
   Loader2,
 } from 'lucide-react';
-import { Student } from '@/shared/types';
+import { Student, UserRole } from '@/shared/types';
+import { RoleToggle } from './RoleToggle';
 
 interface StudentTableProps {
   students: Student[];
@@ -19,6 +20,7 @@ interface StudentTableProps {
   currentUserId?: number;
   onInspectProgress: (student: Student) => void;
   onManageEnrollments: (student: Student) => void;
+  onRoleChange?: (userId: number, newRole: UserRole) => Promise<void>;
   isLoading?: boolean;
 }
 
@@ -33,6 +35,7 @@ export const StudentTable: React.FC<StudentTableProps> = ({
   currentUserId,
   onInspectProgress,
   onManageEnrollments,
+  onRoleChange,
   isLoading,
 }) => {
   if (isLoading) {
@@ -65,7 +68,8 @@ export const StudentTable: React.FC<StudentTableProps> = ({
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="border-b border-white/5 bg-[#121216] text-[10px] font-bold text-zinc-400 uppercase tracking-wider">
-              <th className="py-3.5 px-4">Студент</th>
+              <th className="py-3.5 px-4">Пользователь</th>
+              <th className="py-3.5 px-4">Роль</th>
               <th className="py-3.5 px-4">Зачислен на курсы</th>
               <th className="py-3.5 px-4">На каком уроке</th>
               <th className="py-3.5 px-4">Дата регистрации</th>
@@ -109,8 +113,39 @@ export const StudentTable: React.FC<StudentTableProps> = ({
                         <div className="text-[11px] text-zinc-400 font-mono truncate">
                           {student.email}
                         </div>
+                        {(student.telegramUsername || student.githubUsername) && (
+                          <div className="flex items-center gap-2 mt-0.5">
+                            {student.telegramUsername && (
+                              <span className="text-[9px] text-zinc-400 font-mono">
+                                TG: @{student.telegramUsername}
+                              </span>
+                            )}
+                            {student.githubUsername && (
+                              <span className="text-[9px] text-zinc-400 font-mono">
+                                GH: {student.githubUsername}
+                              </span>
+                            )}
+                          </div>
+                        )}
                       </div>
                     </div>
+                  </td>
+
+                  {/* Role */}
+                  <td className="py-3.5 px-4">
+                    {onRoleChange ? (
+                      <RoleToggle
+                        userId={student.id}
+                        userEmail={student.email}
+                        currentRole={student.role}
+                        isCurrentAdmin={isSelf}
+                        onRoleChange={(newRole) => onRoleChange(student.id, newRole)}
+                      />
+                    ) : (
+                      <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-zinc-800 text-zinc-300 border border-white/5">
+                        {student.role}
+                      </span>
+                    )}
                   </td>
 
                   {/* Enrolled Courses */}
@@ -138,11 +173,24 @@ export const StudentTable: React.FC<StudentTableProps> = ({
                     </span>
                   </td>
 
-                  {/* Registration Date */}
-                  <td className="py-3.5 px-4 text-[11px] text-zinc-400 font-mono">
-                    {student.createdAt
-                      ? new Date(student.createdAt).toLocaleDateString('ru-RU')
-                      : '—'}
+                  {/* Registration Date & Activity */}
+                  <td className="py-3.5 px-4 text-[11px] text-zinc-300 font-mono">
+                    <div>
+                      {student.createdAt
+                        ? new Date(student.createdAt).toLocaleString('ru-RU', {
+                            day: '2-digit',
+                            month: '2-digit',
+                            year: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })
+                        : '—'}
+                    </div>
+                    {student.lastActiveDate && (
+                      <div className="text-[10px] text-zinc-500 mt-0.5">
+                        Был: {new Date(student.lastActiveDate).toLocaleDateString('ru-RU')}
+                      </div>
+                    )}
                   </td>
 
                   {/* Estimated Finish Date */}

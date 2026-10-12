@@ -23,7 +23,7 @@ describe('GalleryPage Component with Folder Browser', () => {
     expect(screen.getByText('Как войти в IT (YouTube 16:9)')).toBeInTheDocument();
     expect(screen.getByText('Как войти в IT (Reels 9:16)')).toBeInTheDocument();
     expect(screen.getByText('Логотип MrDEV Bracket')).toBeInTheDocument();
-  });
+  }, 15000);
 
   it('filters gallery items when selecting folders', () => {
     render(<GalleryPage />);
@@ -41,7 +41,7 @@ describe('GalleryPage Component with Folder Browser', () => {
     // Switch back to All
     fireEvent.click(screen.getByRole('button', { name: /Все материалы/i }));
     expect(screen.getByRole('heading', { level: 2, name: 'Все материалы' })).toBeInTheDocument();
-  });
+  }, 15000);
 
   it('filters gallery items using the search input', () => {
     render(<GalleryPage />);

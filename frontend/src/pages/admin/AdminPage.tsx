@@ -504,17 +504,17 @@ export const AdminPage: React.FC = () => {
       {/* TAB 3: STUDENTS */}
       {activeTab === 'students' && (
         <div className="space-y-6">
-          <h2 className="text-sm font-bold text-white">Список студентов ({students.length})</h2>
+          <h2 className="text-sm font-bold text-white">Список зарегистрированных пользователей ({students.length})</h2>
 
           {studentsLoading ? (
-            <div className="text-center py-12 text-zinc-500 text-xs">Загрузка студентов...</div>
+            <div className="text-center py-12 text-zinc-500 text-xs">Загрузка пользователей...</div>
           ) : (
             <div className="rounded-sm border border-white/5 bg-[#0e0e11] overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
                   <thead className="bg-zinc-900/80 border-b border-white/5 text-zinc-400 font-mono">
                     <tr>
-                      <th className="p-3.5">Студент</th>
+                      <th className="p-3.5">Пользователь</th>
                       <th className="p-3.5">Email</th>
                       <th className="p-3.5">Роль</th>
                       <th className="p-3.5">Записи на курсы</th>
@@ -541,7 +541,7 @@ export const AdminPage: React.FC = () => {
                           <span
                             className={`px-2 py-0.5 rounded text-[10px] font-mono ${
                               student.role === 'ADMIN'
-                                ? 'bg-amber-950 text-amber-400 border border-amber-800'
+                                ? 'bg-white/15 text-white border border-white/20'
                                 : 'bg-zinc-800 text-zinc-300'
                             }`}
                           >

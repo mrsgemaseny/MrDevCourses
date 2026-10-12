@@ -138,6 +138,8 @@ export interface Student {
   avatarUrl?: string;
   role: UserRole;
   lastActiveDate?: string;
+  telegramUsername?: string;
+  githubUsername?: string;
   createdAt: string;
   enrollments: Enrollment[];
   currentLessonTitle?: string;

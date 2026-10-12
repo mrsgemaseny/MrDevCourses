@@ -58,12 +58,12 @@ export const RoleToggle: React.FC<RoleToggleProps> = ({
         }
         className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-semibold uppercase tracking-wider transition-all border ${
           isAdmin
-            ? 'bg-amber-950/40 text-amber-300 border-amber-500/30 hover:bg-amber-900/50'
+            ? 'bg-white/15 text-white border-white/25 hover:bg-white/20'
             : 'bg-zinc-800/80 text-zinc-300 border-white/10 hover:bg-zinc-700/80'
-        } ${isCurrentAdmin && isAdmin ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`}
+        } ${isCurrentAdmin && isAdmin ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
       >
         {isAdmin ? (
-          <ShieldCheck className="w-3.5 h-3.5 text-amber-400" />
+          <ShieldCheck className="w-3.5 h-3.5 text-white" />
         ) : (
           <Shield className="w-3.5 h-3.5 text-zinc-400" />
         )}
@@ -72,10 +72,10 @@ export const RoleToggle: React.FC<RoleToggleProps> = ({
 
       {/* Confirmation Modal */}
       {showConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-xs p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-xs p-4">
           <div className="bg-[#18181b] border border-white/10 rounded-xl p-5 max-w-md w-full shadow-2xl animate-in fade-in zoom-in-95 duration-150">
             <div className="flex items-start gap-3 mb-4">
-              <div className="p-2 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400">
+              <div className="p-2 rounded-lg bg-white/10 border border-white/15 text-white">
                 <ShieldAlert className="w-5 h-5" />
               </div>
               <div className="flex-1">
@@ -85,14 +85,14 @@ export const RoleToggle: React.FC<RoleToggleProps> = ({
                 <p className="text-xs text-zinc-400">
                   Вы действительно хотите изменить роль пользователя{' '}
                   <span className="font-mono text-zinc-200 font-medium">{userEmail}</span> с{' '}
-                  <span className="font-semibold text-amber-400">{currentRole}</span> на{' '}
-                  <span className="font-semibold text-zinc-100">{targetRole}</span>?
+                  <span className="font-semibold text-white">{currentRole}</span> на{' '}
+                  <span className="font-semibold text-white">{targetRole}</span>?
                 </p>
               </div>
             </div>
 
             {errorMsg && (
-              <div className="mb-4 p-2.5 rounded-lg bg-red-950/40 border border-red-500/30 text-xs text-red-300">
+              <div className="mb-4 p-2.5 rounded-lg bg-zinc-900 border border-white/20 text-xs text-zinc-200 font-mono">
                 {errorMsg}
               </div>
             )}
@@ -110,7 +110,7 @@ export const RoleToggle: React.FC<RoleToggleProps> = ({
                 type="button"
                 disabled={isLoading}
                 onClick={handleConfirm}
-                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-zinc-950 text-xs font-semibold transition-colors cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-white hover:bg-zinc-200 text-black text-xs font-semibold transition-colors cursor-pointer"
               >
                 {isLoading ? (
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />

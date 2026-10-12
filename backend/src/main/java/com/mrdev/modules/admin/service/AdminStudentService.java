@@ -69,10 +69,10 @@ public class AdminStudentService {
 
         final Set<Long> finalEnrolledUserIds = enrolledUserIds;
 
-        // 2. Filter in memory by query and courseId — ONLY STUDENTS allowed in student console
+        // 2. Filter in memory by query, role and courseId
         List<User> filteredUsers = allUsers.stream()
                 .filter(u -> {
-                    if (u.getRole() != Role.STUDENT) {
+                    if (role != null && u.getRole() != role) {
                         return false;
                     }
                     if (finalEnrolledUserIds != null && !finalEnrolledUserIds.contains(u.getId())) {
@@ -82,7 +82,9 @@ public class AdminStudentService {
                         String q = query.trim().toLowerCase();
                         boolean matchEmail = u.getEmail() != null && u.getEmail().toLowerCase().contains(q);
                         boolean matchName = u.getName() != null && u.getName().toLowerCase().contains(q);
-                        if (!matchEmail && !matchName) {
+                        boolean matchTg = u.getTelegramUsername() != null && u.getTelegramUsername().toLowerCase().contains(q);
+                        boolean matchGh = u.getGithubUsername() != null && u.getGithubUsername().toLowerCase().contains(q);
+                        if (!matchEmail && !matchName && !matchTg && !matchGh) {
                             return false;
                         }
                     }
@@ -347,6 +349,9 @@ public class AdminStudentService {
                 .avatarUrl(user.getAvatarUrl())
                 .role(user.getRole())
                 .createdAt(user.getCreatedAt())
+                .lastActiveDate(user.getLastActiveDate())
+                .telegramUsername(user.getTelegramUsername())
+                .githubUsername(user.getGithubUsername())
                 .enrollments(enrollmentDtos)
                 .currentLessonTitle(currentLessonTitle)
                 .estimatedFinishDate(estimatedFinishDate)

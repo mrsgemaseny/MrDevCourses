@@ -199,8 +199,8 @@ export const adminApi = {
 
   // Student Endpoints
   getStudents: async (): Promise<Student[]> => {
-    const res = await apiClient.get<ApiResponse<Student[]>>('/v1/admin/students');
-    return res.data.data ?? [];
+    const res = await apiClient.get<ApiResponse<PageResponse<Student>>>('/v1/admin/students');
+    return res.data.data?.content ?? [];
   },
 
   enrollStudent: async (userId: number, courseId: number): Promise<Enrollment> => {
