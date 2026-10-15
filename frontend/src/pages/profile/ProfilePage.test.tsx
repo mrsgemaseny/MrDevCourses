@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -42,8 +42,13 @@ vi.mock('@/entities/user/api/userApi', () => ({
 }));
 
 describe('ProfilePage Component', () => {
-  const queryClient = new QueryClient({
-    defaultOptions: { queries: { retry: false } },
+  let queryClient: QueryClient;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
   });
 
   it('renders student profile header, stats, and populated form', async () => {
@@ -74,7 +79,7 @@ describe('ProfilePage Component', () => {
     expect(screen.getByText('Время обучения')).toBeInTheDocument();
     expect(screen.getByText('Сделано проектов')).toBeInTheDocument();
     expect(screen.getByText('Пройдено уроков')).toBeInTheDocument();
-    expect(screen.getByDisplayValue('Azamat Student')).toBeInTheDocument();
+    expect(await screen.findByDisplayValue('Azamat Student')).toBeInTheDocument();
     expect(screen.getByDisplayValue('azamat_tg')).toBeInTheDocument();
     expect(screen.getByDisplayValue('azamat-gh')).toBeInTheDocument();
   });
