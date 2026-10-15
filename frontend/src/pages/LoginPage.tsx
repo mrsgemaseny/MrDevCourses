@@ -10,7 +10,9 @@ export const LoginPage: React.FC = () => {
   const [mode, setMode] = useState<AuthMode>('login');
 
   if (!isLoading && isAuthenticated) {
-    return <Navigate to={user?.role === 'ADMIN' ? '/admin' : '/courses'} replace />;
+    const redirectParam = searchParams.get('redirect');
+    const target = redirectParam || (user?.role === 'ADMIN' ? '/admin' : '/courses');
+    return <Navigate to={target} replace />;
   }
 
   const [avatarError, setAvatarError] = React.useState(false);

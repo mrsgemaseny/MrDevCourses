@@ -482,3 +482,41 @@ export interface ResolveHelpRequestPayload {
   mentorSolution?: string;
 }
 
+export interface CourseInvite {
+  id: number;
+  code: string;
+  courseId: number;
+  courseTitle: string;
+  courseSlug: string;
+  cohortId?: number;
+  cohortName?: string;
+  maxUses: number;
+  usedCount: number;
+  expiresAt?: string;
+  note?: string;
+  valid: boolean;
+  expired: boolean;
+  exhausted: boolean;
+  createdAt: string;
+}
+
+export interface CreateCourseInvitePayload {
+  courseId: number;
+  cohortId?: number;
+  maxUses?: number;
+  expiresInDays?: number;
+  customCode?: string;
+  note?: string;
+}
+
+export interface RedeemInviteResult {
+  courseId: number;
+  courseTitle: string;
+  courseSlug: string;
+  cohortId?: number;
+  cohortName?: string;
+  enrolledAt: string;
+  alreadyEnrolled: boolean;
+  message: string;
+}
+

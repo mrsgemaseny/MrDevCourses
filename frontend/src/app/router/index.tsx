@@ -38,6 +38,7 @@ const GalleryPage = React.lazy(() => import('@/pages/gallery/GalleryPage').then(
 const PrivacyPage = React.lazy(() => import('@/pages/legal/PrivacyPage').then((m) => ({ default: m.PrivacyPage })));
 const TermsPage = React.lazy(() => import('@/pages/legal/TermsPage').then((m) => ({ default: m.TermsPage })));
 const RefundPolicyPage = React.lazy(() => import('@/pages/legal/RefundPolicyPage').then((m) => ({ default: m.RefundPolicyPage })));
+const InviteRedeemPage = React.lazy(() => import('@/pages/invite/InviteRedeemPage').then((m) => ({ default: m.InviteRedeemPage })));
 
 const wrap = (element: React.ReactNode) => (
   <Suspense fallback={<PageLoader />}>{element}</Suspense>
@@ -64,6 +65,7 @@ export const router = createBrowserRouter([
       { path: 'docs', element: wrap(<DocsPage />) },
       { path: 'glossary', element: wrap(<DocsPage />) },
       { path: 'certificates/verify/:code', element: wrap(<CertificateVerifyPage />) },
+      { path: 'invite/:code', element: wrap(<InviteRedeemPage />) },
       { path: 'privacy', element: wrap(<PrivacyPage />) },
       { path: 'terms', element: wrap(<TermsPage />) },
       { path: 'refund', element: wrap(<RefundPolicyPage />) },

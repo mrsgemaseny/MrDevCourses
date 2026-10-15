@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Users,
   RefreshCw,
+  Link as LinkIcon,
 } from 'lucide-react';
 import { adminStudentApi, StudentFilterParams } from '@/entities/adminStudentApi';
 import { adminApi } from '@/entities/admin/api/adminApi';
@@ -19,6 +20,7 @@ import {
   StudentProgressDrawer,
   ManualEnrollModal,
   CohortManagerModal,
+  InviteManagerModal,
 } from '@/widgets/admin-students';
 
 export const AdminStudentsPage: React.FC = () => {
@@ -38,6 +40,7 @@ export const AdminStudentsPage: React.FC = () => {
   const [enrollStudent, setEnrollStudent] = useState<Student | null>(null);
   const [isEnrollModalOpen, setIsEnrollModalOpen] = useState(false);
   const [isCohortModalOpen, setIsCohortModalOpen] = useState(false);
+  const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
 
   // Toast / feedback message
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
@@ -171,6 +174,15 @@ export const AdminStudentsPage: React.FC = () => {
         <div className="flex items-center gap-2.5">
           <button
             type="button"
+            onClick={() => setIsInviteModalOpen(true)}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-white/10 text-xs font-semibold transition-colors cursor-pointer"
+          >
+            <LinkIcon className="w-4 h-4 text-zinc-400" />
+            <span>Инвайт-ссылки</span>
+          </button>
+
+          <button
+            type="button"
             onClick={() => setIsCohortModalOpen(true)}
             className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-white/10 text-xs font-semibold transition-colors cursor-pointer"
           >
@@ -266,6 +278,13 @@ export const AdminStudentsPage: React.FC = () => {
         courses={courses}
         isOpen={isCohortModalOpen}
         onClose={() => setIsCohortModalOpen(false)}
+      />
+
+      {/* Invite Manager Modal */}
+      <InviteManagerModal
+        courses={courses}
+        isOpen={isInviteModalOpen}
+        onClose={() => setIsInviteModalOpen(false)}
       />
     </div>
   );

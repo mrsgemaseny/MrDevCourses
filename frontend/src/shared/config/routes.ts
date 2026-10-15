@@ -16,4 +16,5 @@ export const ROUTES = {
   PRIVACY: '/privacy',
   TERMS: '/terms',
   REFUND: '/refund',
+  INVITE: (code: string) => `/invite/${code}`,
 } as const;
