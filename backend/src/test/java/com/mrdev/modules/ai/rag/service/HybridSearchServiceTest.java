@@ -1,9 +1,13 @@
 package com.mrdev.modules.ai.rag.service;
 
+import com.mrdev.modules.ai.rag.dto.ResolvedTicketMatchDto;
 import com.mrdev.modules.ai.rag.dto.SearchResultDto;
 import com.mrdev.modules.ai.rag.model.ChunkType;
 import com.mrdev.modules.ai.rag.model.LessonChunk;
 import com.mrdev.modules.ai.rag.repository.LessonChunkRepository;
+import com.mrdev.modules.help.model.HelpRequestStatus;
+import com.mrdev.modules.help.model.StudentHelpRequest;
+import com.mrdev.modules.help.repository.StudentHelpRequestRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -23,6 +27,9 @@ class HybridSearchServiceTest {
 
     @Mock
     private LessonChunkRepository lessonChunkRepository;
+
+    @Mock
+    private StudentHelpRequestRepository studentHelpRequestRepository;
 
     @Spy
     private EmbeddingService embeddingService = new EmbeddingService();
@@ -80,5 +87,31 @@ class HybridSearchServiceTest {
     void searchLesson_WhenBlank_ReturnsEmpty() {
         List<SearchResultDto> results = hybridSearchService.searchLesson(10L, "  ", 5);
         assertThat(results).isEmpty();
+    }
+
+    @Test
+    @DisplayName("searchResolvedHelpTickets should find and rank resolved help requests by cosine similarity")
+    void searchResolvedHelpTickets_RanksRelevantTickets() {
+        float[] ticketVec = embeddingService.generateEmbedding("Docker daemon error while starting postgres container");
+        StudentHelpRequest ticket = StudentHelpRequest.builder()
+                .id(42L)
+                .lessonId(10L)
+                .courseId(100L)
+                .stepTitle("Docker Compose Setup")
+                .problemText("Docker daemon is not running")
+                .mentorSolution("Start Docker Desktop and enable WSL2 integration")
+                .status(HelpRequestStatus.RESOLVED)
+                .embedding(embeddingService.vectorToString(ticketVec))
+                .build();
+
+        when(studentHelpRequestRepository.findByLessonIdAndStatus(10L, HelpRequestStatus.RESOLVED))
+                .thenReturn(List.of(ticket));
+
+        List<ResolvedTicketMatchDto> results = hybridSearchService.searchResolvedHelpTickets(10L, "docker daemon error", 3);
+
+        assertThat(results).hasSize(1);
+        assertThat(results.get(0).getTicketId()).isEqualTo(42L);
+        assertThat(results.get(0).getMentorSolution()).contains("Docker Desktop");
+        assertThat(results.get(0).getSimilarity()).isGreaterThan(0.25);
     }
 }

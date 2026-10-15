@@ -1,5 +1,5 @@
 import { apiClient } from '@/shared/api/base';
-import { ApiResponse, Course, CourseModule, Enrollment, LessonDetail, LessonMaterial, LessonType, MaterialType, QuestionType, Quiz, Student } from '@/shared/types';
+import { ApiResponse, Course, CourseModule, Enrollment, LessonDetail, LessonMaterial, LessonType, MaterialType, QuestionType, Quiz } from '@/shared/types';
 
 export interface CreateCoursePayload {
   title: string;
@@ -198,11 +198,6 @@ export const adminApi = {
   },
 
   // Student Endpoints
-  getStudents: async (): Promise<Student[]> => {
-    const res = await apiClient.get<ApiResponse<PageResponse<Student>>>('/v1/admin/students');
-    return res.data.data?.content ?? [];
-  },
-
   enrollStudent: async (userId: number, courseId: number): Promise<Enrollment> => {
     const res = await apiClient.post<ApiResponse<Enrollment>>(`/v1/admin/students/${userId}/enroll/${courseId}`);
     return res.data.data;

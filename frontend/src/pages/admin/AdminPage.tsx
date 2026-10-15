@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { adminApi, CreateCoursePayload, CreateLessonPayload } from '@/entities/admin/api/adminApi';
+import { adminStudentApi } from '@/entities/adminStudentApi';
 import { AdminAnalyticsDashboard } from '@/features/admin-analytics';
 import { Plus, Trash2, X, AlertTriangle, UserPlus } from 'lucide-react';
 
@@ -72,7 +73,10 @@ export const AdminPage: React.FC = () => {
 
   const { data: students = [], isLoading: studentsLoading } = useQuery({
     queryKey: ['admin', 'students'],
-    queryFn: adminApi.getStudents,
+    queryFn: async () => {
+      const pageRes = await adminStudentApi.getStudents({ page: 0, size: 100 });
+      return pageRes?.content || [];
+    },
   });
 
   // Mutations

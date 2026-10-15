@@ -1,8 +1,12 @@
 package com.mrdev.modules.ai.rag.service;
 
+import com.mrdev.modules.ai.rag.dto.ResolvedTicketMatchDto;
 import com.mrdev.modules.ai.rag.dto.SearchResultDto;
 import com.mrdev.modules.ai.rag.model.LessonChunk;
 import com.mrdev.modules.ai.rag.repository.LessonChunkRepository;
+import com.mrdev.modules.help.model.HelpRequestStatus;
+import com.mrdev.modules.help.model.StudentHelpRequest;
+import com.mrdev.modules.help.repository.StudentHelpRequestRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -22,6 +26,7 @@ public class HybridSearchService {
 
     private final LessonChunkRepository lessonChunkRepository;
     private final EmbeddingService embeddingService;
+    private final StudentHelpRequestRepository studentHelpRequestRepository;
 
     @Transactional(readOnly = true)
     public List<SearchResultDto> searchCourse(Long courseId, String query, int topK) {
@@ -108,6 +113,39 @@ public class HybridSearchService {
                             .matchType("HYBRID_RRF")
                             .build();
                 })
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<ResolvedTicketMatchDto> searchResolvedHelpTickets(Long lessonId, String query, int topK) {
+        if (query == null || query.isBlank() || lessonId == null) {
+            return List.of();
+        }
+
+        List<StudentHelpRequest> tickets = studentHelpRequestRepository.findByLessonIdAndStatus(lessonId, HelpRequestStatus.RESOLVED);
+        if (tickets.isEmpty()) {
+            return List.of();
+        }
+
+        float[] queryEmbedding = embeddingService.generateEmbedding(query);
+
+        return tickets.stream()
+                .filter(t -> t.getMentorSolution() != null && !t.getMentorSolution().isBlank())
+                .map(ticket -> {
+                    float[] ticketVec = embeddingService.stringToVector(ticket.getEmbedding());
+                    double sim = embeddingService.calculateCosineSimilarity(queryEmbedding, ticketVec);
+                    return ResolvedTicketMatchDto.builder()
+                            .ticketId(ticket.getId())
+                            .lessonId(ticket.getLessonId())
+                            .stepTitle(ticket.getStepTitle())
+                            .problemText(ticket.getProblemText())
+                            .mentorSolution(ticket.getMentorSolution())
+                            .similarity(sim)
+                            .build();
+                })
+                .filter(dto -> dto.getSimilarity() > 0.25)
+                .sorted(Comparator.comparingDouble(ResolvedTicketMatchDto::getSimilarity).reversed())
+                .limit(topK)
                 .toList();
     }
 

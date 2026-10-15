@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { AdminPage } from './AdminPage';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import * as adminApiModule from '@/entities/admin/api/adminApi';
+import * as adminStudentApiModule from '@/entities/adminStudentApi';
 import * as adminAnalyticsApiModule from '@/entities/adminAnalyticsApi';
 
 const queryClient = new QueryClient({
@@ -69,7 +70,14 @@ describe('Admin Suite E2E Workflows (Frontend)', () => {
 
     vi.spyOn(adminApiModule.adminApi, 'getCourses').mockResolvedValue(mockCourses);
     vi.spyOn(adminApiModule.adminApi, 'getLessons').mockResolvedValue(mockLessons);
-    vi.spyOn(adminApiModule.adminApi, 'getStudents').mockResolvedValue(mockStudents);
+    vi.spyOn(adminStudentApiModule.adminStudentApi, 'getStudents').mockResolvedValue({
+      content: mockStudents,
+      page: 0,
+      size: 100,
+      totalElements: mockStudents.length,
+      totalPages: 1,
+      last: true,
+    });
 
     vi.spyOn(adminAnalyticsApiModule.adminAnalyticsApi, 'getOverviewMetrics').mockResolvedValue({
       totalStudents: 1,

@@ -36,7 +36,11 @@
   - Created Flyway migration `V69__seed_student_projects.sql` ensuring student accounts and showcases persist in PostgreSQL, and `V70__remove_featured_and_likes_from_showcases.sql` resetting featured/like flags.
   - Added frontend `defaultProjects.ts` fallback ensuring immediate zero-latency rendering even during cold starts.
   - Completely removed all gamification, likes, TOP/featured badges, and filter tabs from `ProjectsPage.tsx` in favor of a clean, egalitarian, minimalist layout.
-- **Verification**: Backend 251/251 JUnit Green | Frontend 86/86 Vitest Green (34 suites) | Build 0 errors (1755 modules).
+  - Eliminated API debt by removing deprecated `adminApi.getStudents` and unifying on canonical `adminStudentApi.getStudents` across `AdminPage` and `AdminSuiteE2E.test.tsx`.
+  - Scaled `AdminStudentService.searchStudents` to zero in-memory overhead: replaced JVM `findAll()` with dynamic Spring Data JPA `Specification<User>` and database `Pageable` (`WHERE ... ORDER BY created_at DESC LIMIT/OFFSET`).
+  - Implemented Help Ticket Vectorization & RAG Dataset (`V71__add_embedding_to_student_help_requests.sql`): automatic 1536-dim embedding generation in `StudentHelpService` on ticket creation and mentor resolution (`problemText + mentorSolution`).
+  - Integrated RAG AI-Core with Mentor Help Knowledge: implemented `HybridSearchService.searchResolvedHelpTickets` (cosine similarity ranking) and injected verified mentor solutions directly into `AiTutorService` system prompt.
+- **Verification**: Backend 252/252 JUnit Green | Frontend 86/86 Vitest Green (34 suites) | Build 0 errors (1755 modules, tsc 0 errors).
 
 ## Roadmap & Product Philosophy (Первоисточник)
 - **Master Roadmap File**: `C:\Users\murat\Downloads\mrdevcourses_roadmap.md` (копия во Втором Мозге: `Brain's protocol - second brain/projects/mrdevcourses/mrdevcourses_roadmap.md`).

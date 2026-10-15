@@ -15,6 +15,7 @@ import com.mrdev.modules.help.model.StudentHelpRequest;
 import com.mrdev.modules.help.repository.StudentHelpRequestRepository;
 import com.mrdev.modules.lesson.model.Lesson;
 import com.mrdev.modules.lesson.repository.LessonRepository;
+import com.mrdev.modules.ai.rag.service.EmbeddingService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -57,6 +58,9 @@ class StudentHelpServiceTest {
     @Mock
     private AuditService auditService;
 
+    @Mock
+    private EmbeddingService embeddingService;
+
     @InjectMocks
     private StudentHelpService studentHelpService;
 
@@ -84,6 +88,9 @@ class StudentHelpServiceTest {
                 .dayNumber(1)
                 .course(course)
                 .build();
+
+        lenient().when(embeddingService.generateEmbedding(any())).thenReturn(new float[1536]);
+        lenient().when(embeddingService.vectorToString(any())).thenReturn("[]");
     }
 
     @Test

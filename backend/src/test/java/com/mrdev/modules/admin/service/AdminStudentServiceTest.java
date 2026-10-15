@@ -33,6 +33,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -130,7 +133,8 @@ class AdminStudentServiceTest {
     @Test
     @DisplayName("searchStudents with query and role should filter and paginate correctly")
     void searchStudents_WithFilter_ShouldReturnPage() {
-        when(userRepository.findAll()).thenReturn(List.of(adminUser, studentUser));
+        when(userRepository.findAll(any(Specification.class), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of(studentUser), Pageable.ofSize(10), 1));
         when(enrollmentRepository.findAllByUserIdsWithCourse(List.of(2L))).thenReturn(List.of());
         when(lessonProgressRepository.findAllByUserIdsWithLesson(List.of(2L))).thenReturn(List.of());
 
@@ -145,7 +149,8 @@ class AdminStudentServiceTest {
     @Test
     @DisplayName("searchStudents without role filter should return both admins and students")
     void searchStudents_WithoutRoleFilter_ShouldReturnAllUsers() {
-        when(userRepository.findAll()).thenReturn(List.of(adminUser, studentUser));
+        when(userRepository.findAll(any(Specification.class), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of(adminUser, studentUser), Pageable.ofSize(10), 2));
         when(enrollmentRepository.findAllByUserIdsWithCourse(any())).thenReturn(List.of());
         when(lessonProgressRepository.findAllByUserIdsWithLesson(any())).thenReturn(List.of());
 

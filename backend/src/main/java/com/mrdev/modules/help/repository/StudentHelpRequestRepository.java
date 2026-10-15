@@ -12,5 +12,7 @@ public interface StudentHelpRequestRepository extends JpaRepository<StudentHelpR
     List<StudentHelpRequest> findByLessonIdOrderByCreatedAtDesc(Long lessonId);
     List<StudentHelpRequest> findByUserIdAndLessonIdOrderByCreatedAtDesc(Long userId, Long lessonId);
     List<StudentHelpRequest> findByStatusOrderByCreatedAtDesc(HelpRequestStatus status);
+    List<StudentHelpRequest> findByLessonIdAndStatus(Long lessonId, HelpRequestStatus status);
+    List<StudentHelpRequest> findByCourseIdAndStatus(Long courseId, HelpRequestStatus status);
     List<StudentHelpRequest> findAllByOrderByCreatedAtDesc();
 }

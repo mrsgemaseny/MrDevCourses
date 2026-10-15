@@ -5,6 +5,7 @@ import com.mrdev.common.exception.ResourceNotFoundException;
 import com.mrdev.modules.ai.dto.AiCitationDto;
 import com.mrdev.modules.ai.dto.AiTutorRequest;
 import com.mrdev.modules.ai.dto.AiTutorResponse;
+import com.mrdev.modules.ai.rag.dto.ResolvedTicketMatchDto;
 import com.mrdev.modules.ai.rag.dto.SearchResultDto;
 import com.mrdev.modules.ai.rag.service.HybridSearchService;
 import com.mrdev.modules.audit.service.AuditService;
@@ -48,6 +49,7 @@ public class AiTutorService {
 
         // 1. Retrieve RAG chunks via Dense + Sparse Hybrid Search
         List<SearchResultDto> relevantChunks = hybridSearchService.searchLesson(lesson.getId(), cleanQuestion, 3);
+        List<ResolvedTicketMatchDto> relevantTickets = hybridSearchService.searchResolvedHelpTickets(lesson.getId(), cleanQuestion, 2);
 
         StringBuilder contextBuilder = new StringBuilder();
         List<AiCitationDto> citations = new ArrayList<>();
@@ -75,6 +77,15 @@ public class AiTutorService {
                     .append(lesson.getContent() != null ? lesson.getContent() : "");
         }
 
+        if (!relevantTickets.isEmpty()) {
+            contextBuilder.append("\nБАЗА ЗНАНИЙ РЕШЕННЫХ ЗАТЫКОВ И ОТВЕТОВ МЕНТОРА:\n");
+            for (ResolvedTicketMatchDto ticket : relevantTickets) {
+                contextBuilder.append("• [Шаг: ").append(ticket.getStepTitle()).append("]\n")
+                        .append("  Проблема: ").append(ticket.getProblemText()).append("\n")
+                        .append("  Решение ментора: ").append(ticket.getMentorSolution()).append("\n\n");
+            }
+        }
+
         String systemPrompt = """
                 Ты — профессиональный Senior AI-наставник образовательной платформы MrDeveloper.
                 Твоя задача — помогать студенту глубоко понимать материал текущего урока на основе точных технических фрагментов.
@@ -82,8 +93,9 @@ public class AiTutorService {
                 Правила:
                 1. Отвечай кратко, ёмко, точно по существу и без воды.
                 2. Опирайся в первую очередь на контекст урока и семантические фрагменты, предоставленные ниже.
-                3. Используй чистый Markdown для оформления кода и терминов.
-                4. Если студент спрашивает о вещах, не связанных с программированием/уроком, вежливо направь его обратно к теме.
+                3. Если в контексте присутствуют решения ментора по похожим затыкам, используй этот проверенный практический опыт.
+                4. Используй чистый Markdown для оформления кода и терминов.
+                5. Если студент спрашивает о вещах, не связанных с программированием/уроком, вежливо направь его обратно к теме.
                 
                 КОНТЕКСТ УРОКА:
                 Название: %s (День %d)

@@ -48,6 +48,9 @@ public class StudentHelpRequest {
     @Column(name = "mentor_solution", columnDefinition = "TEXT")
     private String mentorSolution;
 
+    @Column(name = "embedding", columnDefinition = "TEXT")
+    private String embedding;
+
     @Column(name = "resolved_by")
     private Long resolvedBy;
 

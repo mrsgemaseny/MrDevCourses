@@ -30,6 +30,14 @@ import com.mrdev.modules.quiz.model.QuizSubmission;
 import com.mrdev.modules.quiz.repository.QuizSubmissionRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import jakarta.persistence.criteria.Predicate;
+import jakarta.persistence.criteria.Root;
+import jakarta.persistence.criteria.Subquery;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -56,65 +64,53 @@ public class AdminStudentService {
 
     @Transactional(readOnly = true)
     public PageResponse<StudentDto> searchStudents(String query, Role role, Long courseId, int page, int size) {
-        List<User> allUsers = userRepository.findAll();
-
-        // 1. Filter by enrolled courseId if present
-        Set<Long> enrolledUserIds = null;
-        if (courseId != null) {
-            List<Enrollment> courseEnrollments = enrollmentRepository.findAllByCourseIdWithUser(courseId);
-            enrolledUserIds = courseEnrollments.stream()
-                    .map(e -> e.getUser().getId())
-                    .collect(Collectors.toSet());
-        }
-
-        final Set<Long> finalEnrolledUserIds = enrolledUserIds;
-
-        // 2. Filter in memory by query, role and courseId
-        List<User> filteredUsers = allUsers.stream()
-                .filter(u -> {
-                    if (role != null && u.getRole() != role) {
-                        return false;
-                    }
-                    if (finalEnrolledUserIds != null && !finalEnrolledUserIds.contains(u.getId())) {
-                        return false;
-                    }
-                    if (query != null && !query.trim().isEmpty()) {
-                        String q = query.trim().toLowerCase();
-                        boolean matchEmail = u.getEmail() != null && u.getEmail().toLowerCase().contains(q);
-                        boolean matchName = u.getName() != null && u.getName().toLowerCase().contains(q);
-                        boolean matchTg = u.getTelegramUsername() != null && u.getTelegramUsername().toLowerCase().contains(q);
-                        boolean matchGh = u.getGithubUsername() != null && u.getGithubUsername().toLowerCase().contains(q);
-                        if (!matchEmail && !matchName && !matchTg && !matchGh) {
-                            return false;
-                        }
-                    }
-                    return true;
-                })
-                .sorted(Comparator.comparing(User::getCreatedAt, Comparator.nullsLast(Comparator.reverseOrder())))
-                .toList();
-
-        long totalElements = filteredUsers.size();
         int safePage = Math.max(0, page);
         int safeSize = size <= 0 ? 20 : size;
-        int fromIndex = safePage * safeSize;
-        if (fromIndex >= totalElements) {
+        Pageable pageable = PageRequest.of(safePage, safeSize, Sort.by(Sort.Direction.DESC, "createdAt"));
+
+        Specification<User> spec = (root, cq, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+
+            if (role != null) {
+                predicates.add(cb.equal(root.get("role"), role));
+            }
+
+            if (courseId != null) {
+                Subquery<Long> subquery = cq.subquery(Long.class);
+                Root<Enrollment> enrollmentRoot = subquery.from(Enrollment.class);
+                subquery.select(enrollmentRoot.get("user").get("id"))
+                        .where(cb.equal(enrollmentRoot.get("course").get("id"), courseId));
+                predicates.add(root.get("id").in(subquery));
+            }
+
+            if (query != null && !query.trim().isEmpty()) {
+                String pattern = "%" + query.trim().toLowerCase() + "%";
+                Predicate matchEmail = cb.like(cb.lower(root.get("email")), pattern);
+                Predicate matchName = cb.like(cb.lower(root.get("name")), pattern);
+                Predicate matchTg = cb.like(cb.lower(root.get("telegramUsername")), pattern);
+                Predicate matchGh = cb.like(cb.lower(root.get("githubUsername")), pattern);
+                predicates.add(cb.or(matchEmail, matchName, matchTg, matchGh));
+            }
+
+            return cb.and(predicates.toArray(new Predicate[0]));
+        };
+
+        Page<User> userPage = userRepository.findAll(spec, pageable);
+        List<User> pageUsers = userPage.getContent();
+        long totalElements = userPage.getTotalElements();
+
+        if (pageUsers.isEmpty()) {
             return PageResponse.of(List.of(), safePage, safeSize, totalElements);
         }
-        int toIndex = Math.min(fromIndex + safeSize, (int) totalElements);
-        List<User> pageUsers = filteredUsers.subList(fromIndex, toIndex);
 
         // Batch fetch enrollments and lesson progress for page users
         List<Long> pageUserIds = pageUsers.stream().map(User::getId).toList();
-        List<Enrollment> enrollments = pageUserIds.isEmpty()
-                ? List.of()
-                : enrollmentRepository.findAllByUserIdsWithCourse(pageUserIds);
+        List<Enrollment> enrollments = enrollmentRepository.findAllByUserIdsWithCourse(pageUserIds);
 
         Map<Long, List<Enrollment>> enrollmentsByUser = enrollments.stream()
                 .collect(Collectors.groupingBy(e -> e.getUser().getId()));
 
-        List<LessonProgress> lessonProgressList = pageUserIds.isEmpty()
-                ? List.of()
-                : lessonProgressRepository.findAllByUserIdsWithLesson(pageUserIds);
+        List<LessonProgress> lessonProgressList = lessonProgressRepository.findAllByUserIdsWithLesson(pageUserIds);
 
         Map<Long, List<LessonProgress>> progressByUser = lessonProgressList.stream()
                 .collect(Collectors.groupingBy(lp -> lp.getUser().getId()));

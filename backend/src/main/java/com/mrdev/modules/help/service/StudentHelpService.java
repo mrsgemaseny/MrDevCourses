@@ -18,6 +18,7 @@ import com.mrdev.modules.help.repository.StudentHelpRequestRepository;
 import com.mrdev.modules.automation.service.EmailNotificationService;
 import com.mrdev.modules.lesson.model.Lesson;
 import com.mrdev.modules.lesson.repository.LessonRepository;
+import com.mrdev.modules.ai.rag.service.EmbeddingService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -42,6 +43,7 @@ public class StudentHelpService {
     private final TelegramNotificationService telegramNotificationService;
     private final EmailNotificationService emailNotificationService;
     private final AuditService auditService;
+    private final EmbeddingService embeddingService;
 
     @Transactional
     public HelpRequestDto createHelpRequest(Long courseId, Long lessonId, Long userId, Role role, CreateHelpRequest request) {
@@ -58,6 +60,8 @@ public class StudentHelpService {
             throw new ApiException("Вы не записаны на этот курс", HttpStatus.FORBIDDEN);
         }
 
+        float[] initialVec = embeddingService.generateEmbedding(request.getProblemText());
+
         StudentHelpRequest helpRequest = StudentHelpRequest.builder()
                 .userId(userId)
                 .courseId(courseId)
@@ -67,6 +71,7 @@ public class StudentHelpService {
                 .problemText(request.getProblemText())
                 .errorLogs(request.getErrorLogs())
                 .status(HelpRequestStatus.OPEN)
+                .embedding(embeddingService.vectorToString(initialVec))
                 .build();
 
         helpRequest = helpRequestRepository.save(helpRequest);
@@ -121,6 +126,12 @@ public class StudentHelpService {
         helpRequest.setMentorSolution(request.getMentorSolution());
         helpRequest.setResolvedBy(adminId);
         helpRequest.setResolvedAt(Instant.now());
+
+        if (request.getStatus() == HelpRequestStatus.RESOLVED && request.getMentorSolution() != null && !request.getMentorSolution().isBlank()) {
+            String combined = helpRequest.getProblemText() + " " + request.getMentorSolution();
+            float[] resolvedVec = embeddingService.generateEmbedding(combined);
+            helpRequest.setEmbedding(embeddingService.vectorToString(resolvedVec));
+        }
 
         helpRequest = helpRequestRepository.save(helpRequest);
 
