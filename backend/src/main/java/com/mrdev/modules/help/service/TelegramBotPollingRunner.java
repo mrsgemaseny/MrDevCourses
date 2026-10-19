@@ -16,7 +16,6 @@ import java.time.Duration;
 
 @Slf4j
 @Component
-@ConditionalOnProperty(name = "app.telegram.polling-enabled", havingValue = "true", matchIfMissing = true)
 public class TelegramBotPollingRunner {
 
     private final TelegramBotCommandService commandService;
@@ -25,6 +24,8 @@ public class TelegramBotPollingRunner {
     private final ObjectMapper objectMapper;
     private final String botToken;
     private final String authorizedChatId;
+    private final boolean pollingEnabled;
+    private final String webhookBaseUrl;
     private long lastUpdateId = 0;
     private boolean webhookCleared = false;
 
@@ -34,30 +35,60 @@ public class TelegramBotPollingRunner {
             RestTemplateBuilder restTemplateBuilder,
             ObjectMapper objectMapper,
             @Value("${app.telegram.bot-token:}") String botToken,
-            @Value("${app.telegram.chat-id:}") String authorizedChatId) {
+            @Value("${app.telegram.chat-id:}") String authorizedChatId,
+            @Value("${app.telegram.polling-enabled:true}") boolean pollingEnabled,
+            @Value("${app.telegram.webhook-base-url:https://mrdevcourses.onrender.com}") String webhookBaseUrl) {
         this.commandService = commandService;
         this.notificationService = notificationService;
         this.objectMapper = objectMapper;
         this.botToken = botToken != null ? botToken.trim() : "";
         this.authorizedChatId = authorizedChatId != null ? authorizedChatId.trim() : "";
+        this.pollingEnabled = pollingEnabled;
+        this.webhookBaseUrl = webhookBaseUrl != null ? webhookBaseUrl.trim() : "https://mrdevcourses.onrender.com";
         this.restTemplate = restTemplateBuilder
                 .setConnectTimeout(Duration.ofSeconds(5))
                 .setReadTimeout(Duration.ofSeconds(10))
                 .build();
 
         if (!this.botToken.isBlank()) {
-            log.info("Telegram Bot Polling Runner ACTIVE for mentor chatId={} (polling every 3s)", this.authorizedChatId);
+            log.info("Telegram Bot Runner initialized (pollingEnabled={}, mentorChatId={})", this.pollingEnabled, this.authorizedChatId);
         } else {
-            log.warn("Telegram Bot Token is blank. Polling is disabled.");
+            log.warn("Telegram Bot Token is blank.");
         }
     }
 
     @EventListener(ApplicationReadyEvent.class)
-    public void ensureWebhookDeletedOnStartup() {
+    public void initializeTelegramTransport() {
+        ensureTransportActive();
+    }
+
+    public String ensureTransportActive() {
         if (botToken.isBlank()) {
-            return;
+            return "NO_TOKEN";
         }
-        clearWebhookIfNeeded();
+        if (pollingEnabled) {
+            clearWebhookIfNeeded();
+            return "POLLING_ACTIVE";
+        } else {
+            return registerWebhook();
+        }
+    }
+
+    public String registerWebhook() {
+        if (botToken.isBlank()) {
+            return "NO_TOKEN";
+        }
+        try {
+            String cleanBase = webhookBaseUrl.endsWith("/") ? webhookBaseUrl.substring(0, webhookBaseUrl.length() - 1) : webhookBaseUrl;
+            String targetWebhook = cleanBase + "/api/v1/telegram/webhook";
+            String setWebhookUrl = "https://api.telegram.org/bot" + botToken + "/setWebhook?url=" + targetWebhook;
+            String resp = restTemplate.getForObject(setWebhookUrl, String.class);
+            log.info("Telegram webhook registered to {}: {}", targetWebhook, resp);
+            return "WEBHOOK_REGISTERED: " + targetWebhook;
+        } catch (Exception e) {
+            log.warn("Could not register Telegram webhook on startup: {}", e.getMessage());
+            return "WEBHOOK_ERROR: " + e.getMessage();
+        }
     }
 
     private void clearWebhookIfNeeded() {
@@ -76,7 +107,7 @@ public class TelegramBotPollingRunner {
 
     @Scheduled(fixedDelay = 3000, initialDelay = 3000)
     public void pollTelegramUpdates() {
-        if (botToken.isBlank()) {
+        if (botToken.isBlank() || !pollingEnabled) {
             return;
         }
 
@@ -125,6 +156,18 @@ public class TelegramBotPollingRunner {
                 clearWebhookIfNeeded();
             }
             log.warn("Telegram polling error: {}", e.getMessage());
+        }
+    }
+
+    @Scheduled(fixedDelay = 600000, initialDelay = 60000)
+    public void keepAliveSelfPing() {
+        if (webhookBaseUrl == null || webhookBaseUrl.isBlank() || webhookBaseUrl.contains("localhost")) {
+            return;
+        }
+        try {
+            String cleanBase = webhookBaseUrl.endsWith("/") ? webhookBaseUrl.substring(0, webhookBaseUrl.length() - 1) : webhookBaseUrl;
+            restTemplate.getForObject(cleanBase + "/api/actuator/health", String.class);
+        } catch (Exception ignored) {
         }
     }
 }

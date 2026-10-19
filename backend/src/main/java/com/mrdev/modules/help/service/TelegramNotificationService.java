@@ -6,6 +6,7 @@ import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
@@ -35,6 +36,7 @@ public class TelegramNotificationService {
         this.enabled = !this.botToken.isBlank() && !this.chatId.isBlank();
     }
 
+    @Async
     public void sendHelpAlert(String studentName, String studentEmail, String courseTitle, String lessonTitle,
                               Integer dayNumber, String stepTitle, String problemText, String errorLogs) {
         StringBuilder sb = new StringBuilder();
@@ -52,6 +54,7 @@ public class TelegramNotificationService {
         sendMessage(sb.toString());
     }
 
+    @Async
     public void sendHomeworkAlert(String studentName, String studentEmail, String courseTitle, String lessonTitle,
                                   String repoUrl, String liveDemoUrl, String notes) {
         StringBuilder sb = new StringBuilder();
@@ -69,6 +72,7 @@ public class TelegramNotificationService {
         sendMessage(sb.toString());
     }
 
+    @Async
     public void sendMessage(String markdownText) {
         if (!enabled) {
             log.info("[Telegram Disabled] Message preview:\n{}", markdownText);
@@ -103,11 +107,13 @@ public class TelegramNotificationService {
         }
     }
 
+    @Async
     public void sendMentorAlert(String title, String details) {
         String msg = "[ALERT] *" + escapeMarkdown(title) + "*\n\n" + details;
         sendDirectMessage(chatId, msg);
     }
 
+    @Async
     public void sendDirectMessage(String targetChatId, String text) {
         if (botToken.isBlank() || targetChatId == null || targetChatId.isBlank()) {
             log.info("[Telegram Disabled] Direct message to {}: {}", targetChatId, text);

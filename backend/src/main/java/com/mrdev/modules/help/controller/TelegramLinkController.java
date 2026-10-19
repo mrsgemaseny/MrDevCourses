@@ -22,6 +22,7 @@ public class TelegramLinkController {
     private final UserRepository userRepository;
     private final com.mrdev.modules.help.service.TelegramBotCommandService commandService;
     private final com.mrdev.modules.help.service.TelegramNotificationService notificationService;
+    private final com.mrdev.modules.help.service.TelegramBotPollingRunner pollingRunner;
 
     @Value("${app.telegram.bot-username:MrDevelopersbot}")
     private String botUsername;
@@ -45,11 +46,13 @@ public class TelegramLinkController {
 
     @GetMapping("/status")
     public ResponseEntity<ApiResponse<java.util.Map<String, Object>>> getBotStatus() {
+        String transportState = pollingRunner.ensureTransportActive();
         java.util.Map<String, Object> info = new java.util.LinkedHashMap<>();
         info.put("botUsername", botUsername);
         info.put("tokenConfigured", botToken != null && !botToken.trim().isEmpty());
         info.put("mentorChatIdConfigured", mentorChatId != null && !mentorChatId.trim().isEmpty());
         info.put("pollingEnabled", pollingEnabled);
+        info.put("transportState", transportState);
         return ResponseEntity.ok(ApiResponse.success(info));
     }
 
