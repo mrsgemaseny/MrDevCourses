@@ -31,7 +31,7 @@
   - Resolved `HTTP Error 403` on `POST /api/v1/auth/google` by updating `OriginValidationFilter.java` and `SecurityConfig.java` to permit requests from `courses.mrsgemaseny.com`, `*.mrsgemaseny.com`, and `*.vercel.app`.
   - Added `Cross-Origin-Opener-Policy: same-origin-allow-popups` to `SecurityHeadersFilter.java` and `vercel.json` to prevent browser COOP blocking on Google Identity popup communication.
   - Enhanced `GoogleLoginButton.tsx` with dynamic `window.google` detection while maintaining full compatibility with isolated unit tests.
-  - Implemented Gallery Page (`/gallery`, `GalleryPage.tsx`) with full folder browser (`galleryData.ts`), supporting original Brand & Ryo 111-file archive (`gallery/full/`), stickers, YouTube covers, animations (GIF/MP4), search, pagination, and Lightbox viewer. Removed `hero-preview.png`.
+  - Pruned `frontend/public/gallery` by 94 MB (from 111.8 MB down to 17.96 MB), keeping strictly the 37 MrDev stickers (`ryo_sticker_*`) in `galleryData.ts` and `GalleryPage.tsx`.
   - Populated Public Graduation Projects Showcase Wall (`/projects`, `courses.mrsgemaseny.com/projects`) with 5 real deployed student projects: Tandamen.kz (Commercial live startup by Usman Sulaimanov), QazaqMarket (Book marketplace by Ratmir Mekenov), KitapAll (Apparel/Book marketplace by Usman), Global Coffee (Coffee shop landing by Usman), and Digital Projects Hub (Spotify & MindCheck by Ratmir).
   - Created Flyway migration `V69__seed_student_projects.sql` ensuring student accounts and showcases persist in PostgreSQL, and `V70__remove_featured_and_likes_from_showcases.sql` resetting featured/like flags.
   - Added frontend `defaultProjects.ts` fallback ensuring immediate zero-latency rendering even during cold starts.

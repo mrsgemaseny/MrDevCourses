@@ -12,17 +12,14 @@ describe('GalleryPage Component with Folder Browser', () => {
 
     // Folders
     expect(screen.getByRole('button', { name: /Все материалы/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Папка: Фулл \(Brand & Ryo\)/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Стикерпак MrDev/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /YouTube и Промо/i })).toBeInTheDocument();
 
     // hero-preview.png is strictly removed as requested
     expect(screen.queryByText('Главная страница и видео-курс Вайбкодинг')).not.toBeInTheDocument();
 
-    // Brand and media items exist
-    expect(screen.getByText('Как войти в IT (YouTube 16:9)')).toBeInTheDocument();
-    expect(screen.getByText('Как войти в IT (Reels 9:16)')).toBeInTheDocument();
-    expect(screen.getByText('Логотип MrDEV Bracket')).toBeInTheDocument();
+    // Sticker items exist
+    expect(screen.getByText('Стикер: 01 wink')).toBeInTheDocument();
+    expect(screen.getByText('Стикер: 02 confident')).toBeInTheDocument();
   }, 15000);
 
   it('filters gallery items when selecting folders', () => {
@@ -33,11 +30,6 @@ describe('GalleryPage Component with Folder Browser', () => {
     expect(screen.getByRole('heading', { level: 2, name: 'Стикерпак MrDev' })).toBeInTheDocument();
     expect(screen.getByText(/37 эмоций и стикеров/i)).toBeInTheDocument();
 
-    // Switch to Full Folder
-    fireEvent.click(screen.getByRole('button', { name: /Папка: Фулл \(Brand & Ryo\)/i }));
-    expect(screen.getByRole('heading', { level: 2, name: 'Папка: Фулл (Brand & Ryo)' })).toBeInTheDocument();
-    expect(screen.getAllByText(/111/i).length).toBeGreaterThanOrEqual(1);
-
     // Switch back to All
     fireEvent.click(screen.getByRole('button', { name: /Все материалы/i }));
     expect(screen.getByRole('heading', { level: 2, name: 'Все материалы' })).toBeInTheDocument();
@@ -47,10 +39,10 @@ describe('GalleryPage Component with Folder Browser', () => {
     render(<GalleryPage />);
 
     const searchInput = screen.getByPlaceholderText('Поиск по файлам...');
-    fireEvent.change(searchInput, { target: { value: 'Bracket' } });
+    fireEvent.change(searchInput, { target: { value: 'wink' } });
 
-    // Matches mrdev-bracket-logo
-    expect(screen.getByText('Логотип MrDEV Bracket')).toBeInTheDocument();
+    // Matches ryo_sticker_01_wink
+    expect(screen.getByText('Стикер: 01 wink')).toBeInTheDocument();
 
     // Clear search
     const clearButton = screen.getByLabelText('Очистить поиск');
