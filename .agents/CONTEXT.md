@@ -43,7 +43,8 @@
   - Implemented Course Invite Links System (`V72__create_course_invites.sql`): full manual payment access flow without mocks on PostgreSQL. Backend (`CourseInviteService`, `AdminInviteController`, `CourseInviteController`) + Frontend (`inviteApi.ts`, `InviteRedeemPage.tsx`, `InviteManagerModal.tsx` in `AdminStudentsPage.tsx`).
   - Fixed `403 Forbidden` on `POST /api/v1/courses/{courseId}/lessons/{lessonId}/complete` (`LessonService`, `CourseService`): unified `isFreePreview` and sequential lesson unlock rules so completing Lesson 1 immediately unlocks Lesson 2 for viewing and completion without a 24h lock wall.
   - Fixed Telegram Bot (`TelegramBotCommandService`, `TelegramBotPollingRunner`, `TelegramLinkController`, `TelegramNotificationService`): added `@Transactional` and `findAllByUserIdWithCourse` (`JOIN FETCH`) to eliminate `LazyInitializationException`, added automatic Telegram Webhook registration (`setWebhook` to `/api/v1/telegram/webhook`) when `TELEGRAM_POLLING_ENABLED=false` on Render, enabled `@Async` non-blocking Telegram notifications, and added 10-minute keep-alive self-ping to prevent Render container cold-start spin-downs.
-- **Verification**: Backend 257/257 JUnit Green | Frontend 94/94 Vitest Green (36 suites) | Build 0 errors (1757 modules, tsc 0 errors).
+  - Refactored Graduation Certificate PDF template (`certificate.html`) and public verification page (`CertificateVerifyPage.tsx`) to strict `BLACK & WHITE ONLY` monochrome design (`#0a0a0c` / `#0e0e11` / `#141418` / `#fafafa`), removing legacy gold `#e2b340` borders.
+- **Verification**: Backend 258/258 JUnit Green | Frontend 94/94 Vitest Green (36 suites) | Build 0 errors (1757 modules, tsc 0 errors).
 
 ## Roadmap & Product Philosophy (Первоисточник)
 - **Master Roadmap File**: `C:\Users\murat\Downloads\mrdevcourses_roadmap.md` (копия во Втором Мозге: `Brain's protocol - second brain/projects/mrdevcourses/mrdevcourses_roadmap.md`).

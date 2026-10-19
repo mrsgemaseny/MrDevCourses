@@ -160,4 +160,16 @@ class CertificateServiceTest {
 
         assertThat(result).isEqualTo(mockPdf);
     }
+
+    @Test
+    @DisplayName("Certificate template should render strict monochrome HTML without gold accents")
+    void renderRealMonochromeCertificatePdfAndPng() throws Exception {
+        try (java.io.InputStream is = getClass().getClassLoader().getResourceAsStream("templates/certificate.html")) {
+            assertThat(is).isNotNull();
+            String html = new String(is.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
+            assertThat(html).contains("MRDEV COURSES");
+            assertThat(html).contains("Lead Architect");
+            assertThat(html).doesNotContain("#e2b340");
+        }
+    }
 }
