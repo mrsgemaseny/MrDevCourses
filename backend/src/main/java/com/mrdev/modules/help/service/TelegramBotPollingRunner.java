@@ -5,7 +5,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.boot.web.client.RestTemplateBuilder;
+import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
@@ -24,6 +26,7 @@ public class TelegramBotPollingRunner {
     private final String botToken;
     private final String authorizedChatId;
     private long lastUpdateId = 0;
+    private boolean webhookCleared = false;
 
     public TelegramBotPollingRunner(
             TelegramBotCommandService commandService,
@@ -38,7 +41,7 @@ public class TelegramBotPollingRunner {
         this.botToken = botToken != null ? botToken.trim() : "";
         this.authorizedChatId = authorizedChatId != null ? authorizedChatId.trim() : "";
         this.restTemplate = restTemplateBuilder
-                .setConnectTimeout(Duration.ofSeconds(3))
+                .setConnectTimeout(Duration.ofSeconds(5))
                 .setReadTimeout(Duration.ofSeconds(10))
                 .build();
 
@@ -49,10 +52,36 @@ public class TelegramBotPollingRunner {
         }
     }
 
-    @Scheduled(fixedDelay = 3000, initialDelay = 5000)
+    @EventListener(ApplicationReadyEvent.class)
+    public void ensureWebhookDeletedOnStartup() {
+        if (botToken.isBlank()) {
+            return;
+        }
+        clearWebhookIfNeeded();
+    }
+
+    private void clearWebhookIfNeeded() {
+        if (webhookCleared || botToken.isBlank()) {
+            return;
+        }
+        try {
+            String deleteWebhookUrl = "https://api.telegram.org/bot" + botToken + "/deleteWebhook?drop_pending_updates=false";
+            restTemplate.getForObject(deleteWebhookUrl, String.class);
+            webhookCleared = true;
+            log.info("Telegram webhook cleared to enable getUpdates long-polling.");
+        } catch (Exception e) {
+            log.warn("Could not clear Telegram webhook on startup: {}", e.getMessage());
+        }
+    }
+
+    @Scheduled(fixedDelay = 3000, initialDelay = 3000)
     public void pollTelegramUpdates() {
         if (botToken.isBlank()) {
             return;
+        }
+
+        if (!webhookCleared) {
+            clearWebhookIfNeeded();
         }
 
         try {
@@ -73,6 +102,9 @@ public class TelegramBotPollingRunner {
                 }
 
                 JsonNode message = update.path("message");
+                if (message.isMissingNode() || message.isNull()) {
+                    message = update.path("edited_message");
+                }
                 if (message.isMissingNode() || message.isNull()) continue;
 
                 String chatId = String.valueOf(message.path("chat").path("id").asLong());
@@ -82,12 +114,16 @@ public class TelegramBotPollingRunner {
                 if (!text.isBlank()) {
                     log.info("Received Telegram message from chatId={} (username={}): {}", chatId, fromUsername, text);
                     String reply = commandService.processCommand(chatId, text, fromUsername);
-                    if (reply != null) {
+                    if (reply != null && !reply.isBlank()) {
                         notificationService.sendDirectMessage(chatId, reply);
                     }
                 }
             }
         } catch (Exception e) {
+            if (e.getMessage() != null && e.getMessage().contains("409")) {
+                webhookCleared = false;
+                clearWebhookIfNeeded();
+            }
             log.warn("Telegram polling error: {}", e.getMessage());
         }
     }

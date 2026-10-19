@@ -86,10 +86,10 @@ class TelegramBotCommandServiceTest {
                 .build();
 
         when(userRepository.findByEmailIgnoreCase("alex@test.com")).thenReturn(Optional.of(student));
-        when(enrollmentRepository.findAllByUserId(1L)).thenReturn(List.of());
+        when(enrollmentRepository.findAllByUserIdWithCourse(1L)).thenReturn(List.of());
 
         String response = botCommandService.processCommand(mentorChatId, "/progress alex@test.com");
-        assertThat(response).contains("Alex Student").contains("alex@test.com").contains("alex_tg");
+        assertThat(response).contains("Alex Student").contains("alex@test.com").contains("alex\\_tg");
     }
 
     @Test
@@ -107,6 +107,23 @@ class TelegramBotCommandServiceTest {
 
         String response = botCommandService.processCommand("987654321", "/start LINK_abc123token");
         assertThat(response).contains("Telegram-аккаунт успешно привязан");
+    }
+
+    @Test
+    @DisplayName("Student /status@MrDevelopersbot with bot suffix returns student progress")
+    void studentStatus_WithBotMentionSuffix() {
+        User student = User.builder()
+                .id(5L)
+                .email("student_five@test.com")
+                .telegramChatId(55555L)
+                .role(Role.STUDENT)
+                .build();
+
+        when(userRepository.findByTelegramChatId(55555L)).thenReturn(Optional.of(student));
+        when(enrollmentRepository.findAllByUserIdWithCourse(5L)).thenReturn(List.of());
+
+        String response = botCommandService.processCommand("55555", "/status@MrDevelopersbot");
+        assertThat(response).contains("У вас пока нет активных курсов");
     }
 
     @Test

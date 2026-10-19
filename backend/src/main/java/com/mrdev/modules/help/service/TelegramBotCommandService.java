@@ -16,6 +16,7 @@ import com.mrdev.modules.lesson.repository.LessonRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -58,17 +59,22 @@ public class TelegramBotCommandService {
         this.authorizedChatId = authorizedChatId != null ? authorizedChatId.trim() : "";
     }
 
+    @Transactional
     public String processCommand(String senderChatId, String text) {
         return processCommand(senderChatId, text, null);
     }
 
+    @Transactional
     public String processCommand(String senderChatId, String text, String fromUsername) {
         if (senderChatId == null || text == null || text.isBlank()) {
             return null;
         }
 
         String trimmed = text.trim();
-        String command = trimmed.split("\\s+")[0].toLowerCase();
+        String rawCommand = trimmed.split("\\s+")[0].toLowerCase();
+        String command = rawCommand.startsWith("/") && rawCommand.contains("@")
+                ? rawCommand.substring(0, rawCommand.indexOf('@'))
+                : rawCommand;
         boolean isMentor = !authorizedChatId.isBlank() && senderChatId.trim().equals(authorizedChatId);
 
         Long chatIdNumeric = null;
@@ -282,13 +288,13 @@ public class TelegramBotCommandService {
         }
 
         User user = userOpt.get();
-        List<Enrollment> enrollments = enrollmentRepository.findAllByUserId(user.getId());
+        List<Enrollment> enrollments = enrollmentRepository.findAllByUserIdWithCourse(user.getId());
         if (enrollments.isEmpty()) {
             return "У вас пока нет активных курсов.";
         }
 
         StringBuilder sb = new StringBuilder();
-        sb.append("*Ваш учебный прогресс (").append(user.getEmail()).append("):*\n\n");
+        sb.append("*Ваш учебный прогресс (").append(escapeMarkdown(user.getEmail())).append("):*\n\n");
 
         for (Enrollment e : enrollments) {
             Course c = e.getCourse();
@@ -298,7 +304,7 @@ public class TelegramBotCommandService {
             long completed = lessonProgressRepository.countCompletedLessonsByUserIdAndCourseId(user.getId(), c.getId());
             long pct = totalLessons > 0 ? (completed * 100 / totalLessons) : 0;
 
-            sb.append("• *").append(c.getTitle()).append("*\n")
+            sb.append("• *").append(escapeMarkdown(c.getTitle())).append("*\n")
               .append("  Пройдено: ").append(completed).append("/").append(totalLessons).append(" уроков (").append(pct).append("%)\n\n");
         }
 
@@ -318,7 +324,7 @@ public class TelegramBotCommandService {
         user.setTelegramLinkedAt(null);
         userRepository.save(user);
 
-        return "Telegram-аккаунт успешно отвязан от профиля " + user.getEmail() + ". Уведомления отключены.";
+        return "Telegram-аккаунт успешно отвязан от профиля " + escapeMarkdown(user.getEmail()) + ". Уведомления отключены.";
     }
 
     private String handleStudentHelp(String senderChatId) {
@@ -364,12 +370,12 @@ public class TelegramBotCommandService {
         }
 
         User u = userOpt.get();
-        List<Enrollment> enrollments = enrollmentRepository.findAllByUserId(u.getId());
+        List<Enrollment> enrollments = enrollmentRepository.findAllByUserIdWithCourse(u.getId());
 
         StringBuilder sb = new StringBuilder();
-        sb.append("[Карточка студента: ").append(u.getName() != null ? u.getName() : "Студент").append("]\n")
+        sb.append("[Карточка студента: ").append(u.getName() != null ? escapeMarkdown(u.getName()) : "Студент").append("]\n")
           .append("Email: `").append(u.getEmail()).append("`\n")
-          .append("Telegram: ").append(u.getTelegramUsername() != null ? "@" + u.getTelegramUsername() : "Не привязан").append("\n")
+          .append("Telegram: ").append(u.getTelegramUsername() != null ? "@" + escapeMarkdown(u.getTelegramUsername()) : "Не привязан").append("\n")
           .append("Последняя активность: ").append(u.getLastActiveDate() != null ? u.getLastActiveDate() : "Не зафиксирована").append("\n\n");
 
         if (enrollments.isEmpty()) {
@@ -382,7 +388,7 @@ public class TelegramBotCommandService {
                 long total = lessonRepository.countByCourseId(c.getId());
                 long done = lessonProgressRepository.countCompletedLessonsByUserIdAndCourseId(u.getId(), c.getId());
                 long pct = total > 0 ? (done * 100 / total) : 0;
-                sb.append("• ").append(c.getTitle()).append(": ").append(done).append("/").append(total).append(" уроков (").append(pct).append("%)\n");
+                sb.append("• ").append(escapeMarkdown(c.getTitle())).append(": ").append(done).append("/").append(total).append(" уроков (").append(pct).append("%)\n");
             }
         }
 
@@ -586,5 +592,13 @@ public class TelegramBotCommandService {
                 .findFirst()
                 .map(User::getId)
                 .orElse(1L);
+    }
+
+    private String escapeMarkdown(String text) {
+        if (text == null) return "";
+        return text.replace("_", "\\_")
+                .replace("*", "\\*")
+                .replace("[", "\\[")
+                .replace("`", "\\`");
     }
 }

@@ -152,6 +152,11 @@ public class CourseService {
         }
 
         List<CourseModule> modules = courseModuleRepository.findAllByCourseIdWithLessons(course.getId());
+        List<Lesson> allLessonsOrdered = modules.stream()
+                .flatMap(m -> m.getLessons().stream())
+                .sorted(Comparator.comparingInt(Lesson::getSortOrder).thenComparingInt(Lesson::getDayNumber))
+                .toList();
+
         Instant now = Instant.now();
         Instant finalEnrolledAt = enrolledAt;
         Map<Long, LessonProgress> finalProgressMap = progressMap;
@@ -159,7 +164,9 @@ public class CourseService {
         List<CourseModuleDto> moduleDtos = modules.stream().map(module -> {
             List<LessonSummaryDto> lessonDtos = module.getLessons().stream().map(lesson -> {
                 Instant opensAt = finalEnrolledAt != null ? calculateUnlockTime(finalEnrolledAt, lesson.getDayNumber()) : Instant.now();
-                boolean isAccessible = isAdmin || lesson.getIsFreePreview() || (finalEnrolledAt != null && !now.isBefore(opensAt));
+                boolean isAccessible = isAdmin
+                        || Boolean.TRUE.equals(lesson.getIsFreePreview())
+                        || isLessonSequentiallyUnlocked(lesson, allLessonsOrdered, finalProgressMap, finalEnrolledAt, now);
                 LessonProgress progress = finalProgressMap.get(lesson.getId());
                 boolean isCompleted = progress != null;
                 Instant completedAt = isCompleted ? progress.getCompletedAt() : null;
@@ -217,6 +224,38 @@ public class CourseService {
             return enrolledAt;
         }
         return enrolledAt.plus(Duration.ofDays(dayNumber - 1L));
+    }
+
+    private boolean isLessonSequentiallyUnlocked(
+            Lesson targetLesson,
+            List<Lesson> courseLessons,
+            Map<Long, LessonProgress> progressMap,
+            Instant enrolledAt,
+            Instant now
+    ) {
+        if (enrolledAt == null) {
+            return false;
+        }
+        Instant opensAt = calculateUnlockTime(enrolledAt, targetLesson.getDayNumber());
+        if (!now.isBefore(opensAt)) {
+            return true;
+        }
+        if (progressMap == null || progressMap.isEmpty() || courseLessons == null || courseLessons.isEmpty()) {
+            return false;
+        }
+        if (progressMap.containsKey(targetLesson.getId())) {
+            return true;
+        }
+        for (int i = 0; i < courseLessons.size(); i++) {
+            if (courseLessons.get(i).getId().equals(targetLesson.getId())) {
+                if (i == 0) {
+                    return true;
+                }
+                Lesson prevLesson = courseLessons.get(i - 1);
+                return progressMap.containsKey(prevLesson.getId());
+            }
+        }
+        return false;
     }
 
     private EnrollmentDto toEnrollmentDto(Enrollment enrollment) {

@@ -47,12 +47,19 @@ const LessonPageContent: React.FC = () => {
     }
   }, [lesson?.dayNumber, cId, lId, setContextData]);
 
+  const [completeError, setCompleteError] = useState<string | null>(null);
+
   const completeMutation = useMutation({
     mutationFn: () => lessonApi.completeLesson(cId, lId),
     onSuccess: () => {
+      setCompleteError(null);
       queryClient.invalidateQueries({ queryKey: ['lesson', cId, lId] });
       queryClient.invalidateQueries({ queryKey: ['lessons', cId] });
       queryClient.invalidateQueries({ queryKey: ['progress'] });
+    },
+    onError: (err: any) => {
+      const msg = err?.response?.data?.message || err?.message || 'Не удалось отметить урок как пройденный.';
+      setCompleteError(msg);
     },
   });
 
@@ -243,6 +250,12 @@ const LessonPageContent: React.FC = () => {
               </button>
             </div>
           </div>
+
+          {completeError && (
+            <div className="p-3 rounded-sm bg-[#141418] border border-white/15 text-xs text-zinc-300 font-mono">
+              {completeError}
+            </div>
+          )}
 
           {/* Lesson Tabs */}
           <div className="pt-4 border-t border-white/5">

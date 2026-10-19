@@ -41,7 +41,9 @@
   - Implemented Help Ticket Vectorization & RAG Dataset (`V71__add_embedding_to_student_help_requests.sql`): automatic 1536-dim embedding generation in `StudentHelpService` on ticket creation and mentor resolution (`problemText + mentorSolution`).
   - Integrated RAG AI-Core with Mentor Help Knowledge: implemented `HybridSearchService.searchResolvedHelpTickets` (cosine similarity ranking) and injected verified mentor solutions directly into `AiTutorService` system prompt.
   - Implemented Course Invite Links System (`V72__create_course_invites.sql`): full manual payment access flow without mocks on PostgreSQL. Backend (`CourseInviteService`, `AdminInviteController`, `CourseInviteController`) + Frontend (`inviteApi.ts`, `InviteRedeemPage.tsx`, `InviteManagerModal.tsx` in `AdminStudentsPage.tsx`).
-- **Verification**: Backend 252/252 JUnit Green | Frontend 94/94 Vitest Green (36 suites) | Build 0 errors (1757 modules, tsc 0 errors).
+  - Fixed `403 Forbidden` on `POST /api/v1/courses/{courseId}/lessons/{lessonId}/complete` (`LessonService`, `CourseService`): unified `isFreePreview` and sequential lesson unlock rules so completing Lesson 1 immediately unlocks Lesson 2 for viewing and completion without a 24h lock wall.
+  - Fixed Telegram Bot (`TelegramBotCommandService`, `TelegramBotPollingRunner`): added `@Transactional` and `findAllByUserIdWithCourse` (`JOIN FETCH`) to eliminate `LazyInitializationException` under `open-in-view: false`, added automatic `deleteWebhook` on startup (`ApplicationReadyEvent`), stripped `@botUsername` command suffixes, and escaped Markdown v1 special characters.
+- **Verification**: Backend 257/257 JUnit Green | Frontend 94/94 Vitest Green (36 suites) | Build 0 errors (1757 modules, tsc 0 errors).
 
 ## Roadmap & Product Philosophy (Первоисточник)
 - **Master Roadmap File**: `C:\Users\murat\Downloads\mrdevcourses_roadmap.md` (копия во Втором Мозге: `Brain's protocol - second brain/projects/mrdevcourses/mrdevcourses_roadmap.md`).

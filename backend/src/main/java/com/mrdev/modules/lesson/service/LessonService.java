@@ -89,7 +89,7 @@ public class LessonService {
         return lessons.stream()
                 .map(lesson -> {
                     Instant opensAt = calculateUnlockTime(enrolledAt, lesson.getDayNumber());
-                    boolean isAccessible = !now.isBefore(opensAt);
+                    boolean isAccessible = isLessonUnlocked(lesson, lessons, progressMap, enrolledAt, now);
                     LessonProgress progress = progressMap.get(lesson.getId());
                     boolean isCompleted = progress != null;
                     Instant completedAt = isCompleted ? progress.getCompletedAt() : null;
@@ -179,20 +179,27 @@ public class LessonService {
                     .build();
         }
 
-        Enrollment enrollment = enrollmentRepository.findByUserIdAndCourseId(userId, courseId)
-                .orElseThrow(() -> new ApiException("Вы не записаны на этот курс", HttpStatus.FORBIDDEN));
+        Optional<Enrollment> enrollmentOpt = enrollmentRepository.findByUserIdAndCourseId(userId, courseId);
+        if (enrollmentOpt.isEmpty() && !Boolean.TRUE.equals(lesson.getIsFreePreview())) {
+            throw new ApiException("Вы не записаны на этот курс", HttpStatus.FORBIDDEN);
+        }
 
-        Instant enrolledAt = enrollment.getEnrolledAt();
-        Instant opensAt = calculateUnlockTime(enrolledAt, lesson.getDayNumber());
         Instant now = Instant.now();
+        Instant enrolledAt = enrollmentOpt.map(Enrollment::getEnrolledAt).orElse(null);
+        Instant opensAt = enrolledAt != null ? calculateUnlockTime(enrolledAt, lesson.getDayNumber()) : now;
 
-        if (now.isBefore(opensAt) && !lesson.getIsFreePreview()) {
+        Map<Long, LessonProgress> progressMap = lessonProgressRepository.findAllByUserIdAndCourseId(userId, courseId)
+                .stream()
+                .collect(Collectors.toMap(lp -> lp.getLesson().getId(), lp -> lp));
+
+        if (!isLessonUnlocked(lesson, allCourseLessons, progressMap, enrolledAt, now)) {
             throw new LessonLockedException("Урок заблокирован. Он станет доступен: " + opensAt.toString(), opensAt);
         }
 
-        Optional<LessonProgress> progressOpt = lessonProgressRepository.findByUserIdAndLessonId(userId, lessonId);
-        boolean isCompleted = progressOpt.isPresent();
-        Instant completedAt = isCompleted ? progressOpt.get().getCompletedAt() : null;
+        LessonProgress progress = progressMap.get(lessonId);
+        boolean isCompleted = progress != null || lessonProgressRepository.findByUserIdAndLessonId(userId, lessonId).isPresent();
+        Instant completedAt = progress != null ? progress.getCompletedAt()
+                : lessonProgressRepository.findByUserIdAndLessonId(userId, lessonId).map(LessonProgress::getCompletedAt).orElse(null);
 
         return LessonDetailDto.builder()
                 .id(lesson.getId())
@@ -233,11 +240,21 @@ public class LessonService {
                 .orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
 
         if (userRole != Role.ADMIN) {
-            Enrollment enrollment = enrollmentRepository.findByUserIdAndCourseId(userId, courseId)
-                    .orElseThrow(() -> new ApiException("Вы не записаны на этот курс", HttpStatus.FORBIDDEN));
+            Optional<Enrollment> enrollmentOpt = enrollmentRepository.findByUserIdAndCourseId(userId, courseId);
+            if (enrollmentOpt.isEmpty() && !Boolean.TRUE.equals(lesson.getIsFreePreview())) {
+                throw new ApiException("Вы не записаны на этот курс", HttpStatus.FORBIDDEN);
+            }
 
-            Instant opensAt = calculateUnlockTime(enrollment.getEnrolledAt(), lesson.getDayNumber());
-            if (Instant.now().isBefore(opensAt)) {
+            Instant now = Instant.now();
+            Instant enrolledAt = enrollmentOpt.map(Enrollment::getEnrolledAt).orElse(null);
+            Instant opensAt = enrolledAt != null ? calculateUnlockTime(enrolledAt, lesson.getDayNumber()) : now;
+
+            List<Lesson> allCourseLessons = lessonRepository.findByCourseIdOrderBySortOrderAscDayNumberAsc(courseId);
+            Map<Long, LessonProgress> progressMap = lessonProgressRepository.findAllByUserIdAndCourseId(userId, courseId)
+                    .stream()
+                    .collect(Collectors.toMap(lp -> lp.getLesson().getId(), lp -> lp));
+
+            if (!isLessonUnlocked(lesson, allCourseLessons, progressMap, enrolledAt, now)) {
                 throw new LessonLockedException("Нельзя завершить заблокированный урок", opensAt);
             }
         }
@@ -287,6 +304,41 @@ public class LessonService {
             return enrolledAt;
         }
         return enrolledAt.plus(Duration.ofDays(dayNumber - 1L));
+    }
+
+    public boolean isLessonUnlocked(
+            Lesson targetLesson,
+            List<Lesson> courseLessons,
+            Map<Long, LessonProgress> progressMap,
+            Instant enrolledAt,
+            Instant now
+    ) {
+        if (Boolean.TRUE.equals(targetLesson.getIsFreePreview())) {
+            return true;
+        }
+        if (enrolledAt == null) {
+            return false;
+        }
+        Instant opensAt = calculateUnlockTime(enrolledAt, targetLesson.getDayNumber());
+        if (!now.isBefore(opensAt)) {
+            return true;
+        }
+        if (progressMap == null || progressMap.isEmpty() || courseLessons == null || courseLessons.isEmpty()) {
+            return false;
+        }
+        if (progressMap.containsKey(targetLesson.getId())) {
+            return true;
+        }
+        for (int i = 0; i < courseLessons.size(); i++) {
+            if (courseLessons.get(i).getId().equals(targetLesson.getId())) {
+                if (i == 0) {
+                    return true;
+                }
+                Lesson prevLesson = courseLessons.get(i - 1);
+                return progressMap.containsKey(prevLesson.getId());
+            }
+        }
+        return false;
     }
 
     private void updateUserLastActive(User user) {
