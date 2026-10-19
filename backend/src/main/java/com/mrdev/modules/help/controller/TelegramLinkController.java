@@ -20,9 +20,20 @@ public class TelegramLinkController {
 
     private final TelegramLinkTokenService linkTokenService;
     private final UserRepository userRepository;
+    private final com.mrdev.modules.help.service.TelegramBotCommandService commandService;
+    private final com.mrdev.modules.help.service.TelegramNotificationService notificationService;
 
     @Value("${app.telegram.bot-username:MrDevelopersbot}")
     private String botUsername;
+
+    @Value("${app.telegram.bot-token:}")
+    private String botToken;
+
+    @Value("${app.telegram.chat-id:}")
+    private String mentorChatId;
+
+    @Value("${app.telegram.polling-enabled:true}")
+    private boolean pollingEnabled;
 
     @Data
     @Builder
@@ -30,6 +41,41 @@ public class TelegramLinkController {
         private String token;
         private String botUsername;
         private String linkUrl;
+    }
+
+    @GetMapping("/status")
+    public ResponseEntity<ApiResponse<java.util.Map<String, Object>>> getBotStatus() {
+        java.util.Map<String, Object> info = new java.util.LinkedHashMap<>();
+        info.put("botUsername", botUsername);
+        info.put("tokenConfigured", botToken != null && !botToken.trim().isEmpty());
+        info.put("mentorChatIdConfigured", mentorChatId != null && !mentorChatId.trim().isEmpty());
+        info.put("pollingEnabled", pollingEnabled);
+        return ResponseEntity.ok(ApiResponse.success(info));
+    }
+
+    @PostMapping("/webhook")
+    public ResponseEntity<ApiResponse<String>> handleWebhook(@RequestBody com.fasterxml.jackson.databind.JsonNode update) {
+        try {
+            com.fasterxml.jackson.databind.JsonNode message = update.path("message");
+            if (message.isMissingNode() || message.isNull()) {
+                message = update.path("edited_message");
+            }
+            if (!message.isMissingNode() && !message.isNull()) {
+                String chatId = String.valueOf(message.path("chat").path("id").asLong());
+                String fromUsername = message.path("from").hasNonNull("username") ? message.path("from").path("username").asText() : null;
+                String text = message.path("text").asText("");
+                if (!text.isBlank()) {
+                    String reply = commandService.processCommand(chatId, text, fromUsername);
+                    if (reply != null && !reply.isBlank()) {
+                        notificationService.sendDirectMessage(chatId, reply);
+                    }
+                    return ResponseEntity.ok(ApiResponse.success("processed", reply));
+                }
+            }
+        } catch (Exception e) {
+            return ResponseEntity.ok(ApiResponse.success("error", e.getMessage()));
+        }
+        return ResponseEntity.ok(ApiResponse.success("ignored", null));
     }
 
     @PostMapping("/link-token")

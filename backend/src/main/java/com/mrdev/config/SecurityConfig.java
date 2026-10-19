@@ -66,6 +66,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/v1/projects", "/v1/projects/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/v1/certificates/verify/**", "/v1/certificates/*/pdf").permitAll()
                         .requestMatchers(HttpMethod.GET, "/v1/invites/**").permitAll()
+                        .requestMatchers("/v1/telegram/status", "/v1/telegram/webhook").permitAll()
                         .requestMatchers("/v1/auth/me").authenticated()
                         .requestMatchers("/v1/auth/**").permitAll()
                         .requestMatchers("/v1/admin/**").hasRole("ADMIN")
